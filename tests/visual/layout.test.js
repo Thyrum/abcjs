@@ -252,6 +252,24 @@ K:Gmaj
 [V:L] C4 |]
 `
 
+	var textSpacing = "X:1\n" +
+		"K: C clef=bass\n" +
+		"%%text A\n" +
+		"%%text B\n" +
+		"G,\n" +
+		"G,\n" +
+		"%%text C\n" +
+		"G,"
+
+	var expectedTextSpacing = [
+		{"x":15,"y":35},
+		{"x":15,"y":70},
+		{"x":15,"y":153},
+		{"x":15,"y":245},
+		{"x":15,"y":293},
+		{"x":15,"y":372}
+	]
+
 	it("line-too-wide", function() {
 		var visualObj = doLayoutTest(lineTooWide, {staffwidth: 500, expandToWidest: true }, expectedLineTooWide, 'staffwidth=500');
 		var expected = ['', 313, '', '', 15, 611, '']
@@ -385,6 +403,10 @@ K:Gmaj
 		chai.assert.equal(staff[1].connectBarLines, "end");
 	})
 
+	it("text-spacing", function() {
+		doItemPlacementTest(textSpacing, expectedTextSpacing, 'g.abcjs-non-music,g.abcjs-staff-wrapper');
+	})
+
 })
 
 function doItemPlacementTest(abc, expected, selector) {
@@ -395,7 +417,7 @@ function doItemPlacementTest(abc, expected, selector) {
 		var bb = els[i].getBBox()
 		pos.push({x: Math.round(bb.x), y: Math.round(bb.y)})
 	}
-	//console.log(pos)
+	console.log(JSON.stringify(pos))
 	chai.assert.deepEqual(pos, expected)
 }
 
