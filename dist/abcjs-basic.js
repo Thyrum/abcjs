@@ -18,7 +18,7 @@ return /******/ (function() { // webpackBootstrap
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 /**!
-Copyright (c) 2009-2024 Paul Rosen and Gregory Dyke
+Copyright (c) 2009-2026 Paul Rosen and Gregory Dyke
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -88,6 +88,12 @@ abcjs.synth = {
 };
 abcjs['Editor'] = __webpack_require__(/*! ./src/edit/abc_editor */ "./src/edit/abc_editor.js");
 abcjs['EditArea'] = __webpack_require__(/*! ./src/edit/abc_editarea */ "./src/edit/abc_editarea.js");
+
+// For testing - probably not needed for most uses
+abcjs.test = {
+  Parse: __webpack_require__(/*! ./src/parse/abc_parse */ "./src/parse/abc_parse.js"),
+  EngraverController: __webpack_require__(/*! ./src/write/engraver-controller */ "./src/write/engraver-controller.js")
+};
 module.exports = abcjs;
 
 /***/ }),
@@ -6748,7 +6754,9 @@ MusicParser.prototype.parseMusic = function (line) {
               if (i + 1 < line.length) this.startNewLine(); // There was a ! in the middle of the line. Start a new line if there is anything after it.
             } else if (ret[1].length > 0) {
               if (ret[1].indexOf("style=") === 0) {
-                el.style = ret[1].substr(6);
+                el.style = ret[1].substring(6);
+              } else if (ret[1].indexOf("class=") === 0) {
+                el.extraClass = ret[1].substring(6);
               } else {
                 if (el.decoration === undefined) el.decoration = [];
                 if (ret[1] === 'beambr1') el.beambr = 1;else if (ret[1] === "beambr2") el.beambr = 2;else el.decoration.push(ret[1]);
@@ -7243,7 +7251,7 @@ var letter_to_accent = function letter_to_accent(line, i) {
       var ret = tokenizer.getBrackettedSubstring(line, i, 5);
       // Be sure that the accent is recognizable.
       if (ret[1].length > 1 && (ret[1][0] === '^' || ret[1][0] === '_')) ret[1] = ret[1].substring(1); // TODO-PER: The test files have indicators forcing the ornament to the top or bottom, but that isn't in the standard. We'll just ignore them.
-      if (legalAccents.includes(ret[1])) return ret;
+      if (legalAccents.includes(ret[1]) || ret[1].indexOf('class=') === 0) return ret;
       if (volumeDecorations.includes(ret[1])) {
         if (multilineVars.volumePosition === 'hidden') ret[1] = '';
         return ret;
@@ -9850,6 +9858,7 @@ var TuneBuilder = function TuneBuilder(tune) {
 
     // If the tempo was created with a string like "Allegro", then the duration of a beat needs to be set at the last moment, when it is most likely known.
     if (tune.metaText.tempo && tune.metaText.tempo.bpm && !tune.metaText.tempo.duration) tune.metaText.tempo.duration = [tune.getBeatLength()];
+    noWarnBeforeTitle(tune);
 
     // Remove any blank lines
     var anyDeleted = false;
@@ -10898,6 +10907,42 @@ function deleteVoice(lines, voiceNum) {
         var staff = staves[s];
         if (voiceNum < staff.voices.length) {
           staff.voices.splice(voiceNum, 1);
+        }
+      }
+    }
+  }
+}
+function noWarnBeforeTitle(tune) {
+  for (var i = 1; i < tune.lines.length; i++) {
+    var line = tune.lines[i];
+    if (line.subtitle) {
+      var previousLine = tune.lines[i - 1];
+      if (previousLine.staff) {
+        for (var j = 0; j < previousLine.staff.length; j++) {
+          for (var v = 0; v < previousLine.staff[j].voices.length; v++) {
+            var voice = previousLine.staff[j].voices[v];
+            if (voice[voice.length - 1].el_type === "key") {
+              // There was a key change after a subtitle.
+              // Remove the courtesy key change.
+              voice.pop();
+              // Also, the new key signature might have some naturals, remove that.
+              var nextLine = tune.lines[i];
+              while (i < tune.lines.length && !nextLine.staff) {
+                i++;
+                nextLine = tune.lines[i];
+              }
+              if (nextLine) {
+                for (var jj = 0; jj < nextLine.staff.length; jj++) {
+                  var accidentals = nextLine.staff[jj].key.accidentals;
+                  var newAccidentals = [];
+                  for (var a = 0; a < accidentals.length; a++) {
+                    if (accidentals[a].acc !== 'natural') newAccidentals.push(accidentals[a]);
+                  }
+                  nextLine.staff[jj].key.accidentals = newAccidentals;
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -20765,6 +20810,7 @@ var AbsoluteElement = function AbsoluteElement(abcelem, duration, minspacing, ty
   this.bottom = undefined;
   this.top = undefined;
   this.type = type;
+  if (abcelem.extraClass) this.extraClass = abcelem.extraClass;
 
   // The following are the dimensions of the fixed part of the element.
   // That is, the chord text will be a different height depending on lot of factors, but the 8th flag will always be in the same place.
@@ -23027,7 +23073,7 @@ function drawAbsolute(renderer, params, bartop, selectables, staffPos) {
       }
     }
   }
-  var g = elementGroup.endGroup(klass, params.type);
+  var g = elementGroup.endGroup(klass, params.type, params.extraClass);
   if (g) {
     // TODO-PER-HACK! This corrects the classes because the tablature is not being created at the right time.
     if (params.cloned) {
@@ -23614,7 +23660,9 @@ function draw(renderer, classes, abcTune, width, maxWidth, responsive, scale, se
         if (abcLine.vskip) {
           renderer.moveY(abcLine.vskip);
         }
-        if (staffgroups.length >= 1) addStaffPadding(renderer, renderer.spacing.staffSeparation, staffgroups[staffgroups.length - 1], abcLine.staffGroup);
+        if (staffgroups.length >= 1) addStaffPadding(renderer, renderer.spacing.staffSeparation, staffgroups[staffgroups.length - 1], abcLine.staffGroup);else if (line > 0)
+          // This happens if there is non-music stuff before the first staff line
+          renderer.moveY(renderer.spacing.staffSeparation);
         var staffgroup = engraveStaffLine(renderer, abcLine.staffGroup, selectables, line);
         staffgroup.line = lineOffset + line; // If there are non-music lines then the staffgroup array won't line up with the line array, so this keeps track.
         staffgroups.push(staffgroup);
@@ -23646,7 +23694,7 @@ function draw(renderer, classes, abcTune, width, maxWidth, responsive, scale, se
 function engraveStaffLine(renderer, staffGroup, selectables, lineNumber) {
   drawStaffGroup(renderer, staffGroup, selectables, lineNumber);
   var height = staffGroup.height * spacing.STEP;
-  renderer.y += height;
+  renderer.moveY(height);
   return staffGroup;
 }
 function addStaffPadding(renderer, staffSeparation, lastStaffGroup, thisStaffGroup) {
@@ -23879,7 +23927,7 @@ Group.prototype.addPath = function (path) {
 /**
  * End a group of glyphs that will always be moved, scaled and highlighted together
  */
-Group.prototype.endGroup = function (klass, name) {
+Group.prototype.endGroup = function (klass, name, extraClass) {
   this.ingroup = false;
   //if (this.path.length === 0) return null;
   var path = "";
@@ -23889,7 +23937,11 @@ Group.prototype.endGroup = function (klass, name) {
   this.path = [];
   var ret = this.paper.closeGroup();
   if (ret) {
-    ret.setAttribute("class", this.controller.classes.generate(klass));
+    var c = this.controller.classes.generate(klass);
+    if (c) {
+      if (extraClass) c += ' ' + extraClass;
+      ret.setAttribute("class", c);
+    }
     ret.setAttribute("fill", this.controller.renderer.foregroundColor);
     ret.setAttribute("stroke", "none");
     ret.setAttribute("data-name", name);
@@ -28507,7 +28559,7 @@ module.exports = Svg;
   \********************/
 /***/ (function(module) {
 
-var version = '6.6.4';
+var version = '6.7.0';
 module.exports = version;
 
 /***/ })
