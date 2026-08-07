@@ -325,6 +325,11 @@ K:C
 C2 "Play 100\\% awesomely"G4 E2 C2| % comment
 `
 
+	var abcRandomClass = "X:1\n" +
+		"K: C\n" +
+		"!class=alice!A!class=bob!!>!T[dfa]\n" +
+		"w: Carol David\n"
+
 	it("crashes", function () {
 		testParser(abc1, expected1, "abc1");
 	})
@@ -395,6 +400,14 @@ C2 "Play 100\\% awesomely"G4 E2 C2| % comment
 		chai.assert.equal(visualObj[0].metaText.title, "100​％ Amazing");
 		chai.assert.equal(visualObj[0].warnings, undefined)
 		chai.assert.equal(visualObj[0].lines[0].staff[0].voices[0][1].chord[0].name, "Play 100​％ awesomely")
+	})
+
+	it("random-class", function() {
+		var visualObj = abcjs.renderAbc("paper", abcRandomClass, {add_classes: true});
+		var els = document.querySelectorAll('#paper .alice')
+		chai.assert.equal(els.length, 1)
+		els = document.querySelectorAll('#paper .bob')
+		chai.assert.equal(els.length, 1)
 	})
 
 	function testParser(abc, expectedLines, comment) {
