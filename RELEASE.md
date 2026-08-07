@@ -1,3 +1,23 @@
+# Version 6.7.0
+
+## Bugs
+
+* Don't put a courtesy key sig on the end of lines when the next line is a subtitle.
+
+* Fix vertical spacing after a %%text line when it is appears before any staff lines.
+
+## Features
+
+* allow adding random classes to note elements.
+
+## Documentation
+
+* Remove the dependencies for building docs since that is now a separate project.
+
+## Build
+
+* Remove linting files: put them in the test project instead.
+
 # Version 6.6.4
 
 ## Bugs
