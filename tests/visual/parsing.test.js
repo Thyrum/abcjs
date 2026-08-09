@@ -186,6 +186,24 @@ describe("Parsing", function () {
 		{"line":3,"staff":0,"type":"bar","style":"bar_thin"}
 	]
 
+	var abcNoWarn = "X:1\n" +
+		"T:Main\n" +
+		"M: 3/4\n" +
+		"K: Eb\n" +
+		"G|\n" +
+		"K:F\n" +
+		"B|\n" +
+		"T:Sub\n" +
+		"K:D\n" +
+		"d|\n"
+
+	var expectedNoWarn = [
+		{"line":0,"staff":0,"type":"initial-key","name":"E","accidentals":"B flat,e flat,A flat"},
+		{"line":0,"staff":0,"type":"key","name":"F","accidentals":"e natural,A natural,B flat"},
+		{"line":1,"staff":0,"type":"initial-key","name":"F","accidentals":"B flat,e natural,A natural"},
+		{"line":3,"staff":0,"type":"initial-key","name":"D","accidentals":"f sharp,c sharp"}
+	]
+
 	var abcInlineKeyPerVoice = "X:1\n" +
 		"M:4/4\n" +
 		"L:1/8\n" +
@@ -325,6 +343,11 @@ K:C
 C2 "Play 100\\% awesomely"G4 E2 C2| % comment
 `
 
+	var abcRandomClass = "X:1\n" +
+		"K: C\n" +
+		"!class=alice!A!class=bob!!>!T[dfa]\n" +
+		"w: Carol David\n"
+
 	it("crashes", function () {
 		testParser(abc1, expected1, "abc1");
 	})
@@ -371,6 +394,21 @@ C2 "Play 100\\% awesomely"G4 E2 C2| % comment
 		chai.assert.deepStrictEqual(ret, expectedKeyWarn, "KeyWarn");
 	})
 
+	it("no-warn", function() {
+		const ret = flattenResults(abcNoWarn)
+		var filtered = []
+		for (var i = 0; i < ret.length; i++) {
+			if (ret[i].type === 'initial-key')
+				filtered.push(ret[i])
+			if (ret[i].type === 'key')
+				filtered.push(ret[i])
+		}
+		console.log(JSON.stringify(filtered))
+		// var visualObj = abcjs.renderAbc("paper", abcNoCourtesy);
+		// var keySigs = document.querySelectorAll('#paper .abcjs-key-signature')
+		chai.assert.deepStrictEqual(filtered, expectedNoWarn);
+	})
+
 	it("inline-key-per-voice", function () {
 		const ret = flattenResults(abcInlineKeyPerVoice)
 		chai.assert.deepStrictEqual(ret, expectedInlineKeyPerVoice, "InlineKeyPerVoice");
@@ -395,6 +433,14 @@ C2 "Play 100\\% awesomely"G4 E2 C2| % comment
 		chai.assert.equal(visualObj[0].metaText.title, "100​％ Amazing");
 		chai.assert.equal(visualObj[0].warnings, undefined)
 		chai.assert.equal(visualObj[0].lines[0].staff[0].voices[0][1].chord[0].name, "Play 100​％ awesomely")
+	})
+
+	it("random-class", function() {
+		var visualObj = abcjs.renderAbc("paper", abcRandomClass, {add_classes: true});
+		var els = document.querySelectorAll('#paper .alice')
+		chai.assert.equal(els.length, 1)
+		els = document.querySelectorAll('#paper .bob')
+		chai.assert.equal(els.length, 1)
 	})
 
 	function testParser(abc, expectedLines, comment) {

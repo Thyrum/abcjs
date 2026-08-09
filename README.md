@@ -10,6 +10,14 @@ Full documentation is here: [abcjs documentation](https://docs.abcjs.net/)
 
 There is an organization that has a collection of useful projects related to abcjs called [abcjs-music](https://github.com/abcjs-music). See some examples there. If you have a project that you think would be of general interest and would like to add it to that organization, contact me.
 
+## Announcement: version 6.7.0
+
+This is a mostly small bug fix release, but I removed the files under `test`, which I doubt anyone was using except me. If you were importing like this:
+```
+import abcjs from "abcjs/test"
+```
+That will no longer work. Please contact me for a workaround.
+
 ## Announcement: version 6.6.0
 
 This has the new feature `chordGrid`, which is a view of the chords similar to some of the trad jazz lead sheets. If you have `chordGrid: "noMusic"` then only the chords will show, if you have `chordGrid: "withMusic"` then the chords will print above the standard music.

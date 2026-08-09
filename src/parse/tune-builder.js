@@ -24,6 +24,8 @@ var TuneBuilder = function (tune) {
 		if (tune.metaText.tempo && tune.metaText.tempo.bpm && !tune.metaText.tempo.duration)
 			tune.metaText.tempo.duration = [tune.getBeatLength()];
 
+		noWarnBeforeTitle(tune)
+
 		// Remove any blank lines
 		var anyDeleted = false;
 		var i, s, v;
@@ -1064,6 +1066,44 @@ function deleteVoice(lines, voiceNum) {
 				var staff = staves[s]
 				if (voiceNum < staff.voices.length) {
 					staff.voices.splice(voiceNum, 1)
+				}
+			}
+		}
+	}
+}
+
+function noWarnBeforeTitle(tune) {
+	for (var i = 1; i < tune.lines.length; i++) {
+		var line = tune.lines[i]
+		if (line.subtitle) {
+			var previousLine = tune.lines[i-1]
+			if (previousLine.staff) {
+				for (var j = 0; j < previousLine.staff.length; j++) {
+					for (var v = 0; v < previousLine.staff[j].voices.length; v++) {
+						var voice = previousLine.staff[j].voices[v]
+						if (voice[voice.length-1].el_type === "key") {
+							// There was a key change after a subtitle.
+							// Remove the courtesy key change.
+							voice.pop()
+							// Also, the new key signature might have some naturals, remove that.
+							var nextLine = tune.lines[i]
+							while (i < tune.lines.length && !nextLine.staff) {
+								i++
+								nextLine = tune.lines[i]
+							}
+							if (nextLine) {
+								for (var jj = 0; jj < nextLine.staff.length; jj++) {
+									var accidentals = nextLine.staff[jj].key.accidentals
+									var newAccidentals = []
+									for (var a= 0; a < accidentals.length; a++) {
+										if (accidentals[a].acc !== 'natural')
+											newAccidentals.push(accidentals[a])
+									}
+									nextLine.staff[jj].key.accidentals = newAccidentals
+								}
+							}
+						}
+					}
 				}
 			}
 		}
