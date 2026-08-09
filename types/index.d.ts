@@ -1344,6 +1344,7 @@ declare module "abcjs" {
 		bpm?: number;
 		clefPos?: number;
 		cmd?: MidiCommands;
+		extraClass?: string;
 		maxpitch?: number;
 		minpitch?: number;
 		mode?: Mode;

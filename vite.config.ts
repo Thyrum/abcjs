@@ -11,12 +11,12 @@ export default defineConfig(({ mode }) => {
 	const isDev = mode.includes("production") ? false : true;
 	const sourceFile = type === "plugin" ? "./plugin.js" : "./index.js";
 	const destinationFile = `abcjs-${type}${isDev ? "" : "-min"}.js`;
-	const licenseFile = `abcjs-${type}${isDev ? "" : "-min"}.LICENSE`;
+	const licenseFile = `${destinationFile}.LICENSE`;
 
 	return {
 		plugins: [
 			banner(
-				`/*! abcjs-${type} v${pkg.version} Copyright © 2009-2024 Paul Rosen and Gregory Dyke (https://abcjs.net) */\n/*! For license information please see ${licenseFile} */`,
+				`/*! abcjs-${type} v${pkg.version} Copyright © 2009-2026 Paul Rosen and Gregory Dyke (https://abcjs.net) */\n/*! For license information please see ${licenseFile} */`,
 			),
 			vitePluginCopyFile("LICENSE.md", licenseFile),
 			tsConfigPaths(),
