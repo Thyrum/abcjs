@@ -17,9 +17,6 @@
     "sourceMap": true,
     "removeComments": false,
     "isolatedModules": true,
-    "types": [
-      "node"
-    ],
     "paths": {
       "abcjs": [
         "./types"
